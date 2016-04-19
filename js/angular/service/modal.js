@@ -109,6 +109,8 @@ function($rootScope, $ionicBody, $compile, $timeout, $ionicPlatform, $ionicTempl
      *    Default: true.
      *  - `{boolean=}` `hardwareBackButtonClose` Whether the modal can be closed using the hardware
      *    back button on Android and similar devices.  Default: true.
+     *  - `{boolean=}` `removeOnHide` Whether to remove the modal instead of hidding it.
+     *    Default: true
      */
     initialize: function(opts) {
       ionic.views.Modal.prototype.initialize.call(this, opts);
@@ -203,6 +205,7 @@ function($rootScope, $ionicBody, $compile, $timeout, $ionicPlatform, $ionicTempl
     hide: function() {
       var self = this;
       var modalEl = jqLite(self.modalEl);
+      var promise;
 
       // on iOS, clicks will sometimes bleed through/ghost click on underlying
       // elements
@@ -230,10 +233,18 @@ function($rootScope, $ionicBody, $compile, $timeout, $ionicPlatform, $ionicTempl
         ionic.off('resize', self._onWindowResize, window);
       }
 
-      return $timeout(function() {
+      promise = $timeout(function() {
         $ionicBody.removeClass(self.viewType + '-open');
         self.el.classList.add('hide');
       }, self.hideDelay || 320);
+      if (self.removeOnHide) {
+        self.scope.$parent && self.scope.$parent.$broadcast(self.viewType + '.removed', self);
+        promise = promise.then(function () {
+          self.scope.$destroy();
+          self.$el.remove();
+        });
+      }
+      return promise;
     },
 
     /**
